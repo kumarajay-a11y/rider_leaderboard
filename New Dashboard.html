@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rider Leaderboard Pro - PNG Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            color: #1e293b;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .custom-card {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: #6366f1;
+        }
+
+        .stat-divider {
+            border-right: 1px solid #f1f5f9;
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* Styles for the new text line */
+        .editable-line {
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .editable-line:focus {
+            outline: none;
+            border-bottom-color: #6366f1;
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+
+<body class="p-8">
+
+    <div class="max-w-[1600px] mx-auto">
+        <div class="bg-white/70 backdrop-blur-md p-8 rounded-[2rem] border border-white shadow-xl mb-6">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-8">
+                <div>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Rider <span
+                            class="text-indigo-600">Leaderboard</span></h1>
+                    <div class="flex gap-4 mt-2">
+                        <span id="photoStatus" class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <span class="status-dot bg-slate-300"></span>Photos: 0 Loaded
+                        </span>
+                        <span id="csvStatus" class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <span class="status-dot bg-slate-300"></span>CSV: Not Ready
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4">
+                    <label
+                        class="px-6 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-400 transition font-semibold text-sm">
+                        📸 Select PNG Photos
+                        <input type="file" id="photoUpload" accept="image/png" multiple class="hidden"
+                            onchange="handlePhotoLibrary(event)">
+                    </label>
+
+                    <label
+                        class="px-6 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-400 transition font-semibold text-sm">
+                        📄 Select CSV
+                        <input type="file" id="csvUpload" accept=".csv" class="hidden"
+                            onchange="updateCSVStatus(event)">
+                    </label>
+
+                    <button onclick="generateDashboard()"
+                        class="px-10 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 active:scale-95">
+                        Generate Leaderboard
+                    </button>
+
+                    <button onclick="downloadSample()"
+                        class="px-4 py-3 text-slate-400 hover:text-slate-600 text-sm font-medium">
+                        Sample CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full mb-8 px-4">
+            <div class="flex items-center justify-center gap-4">
+                <input type="text" id="customStoreName"
+                    class="editable-line w-full text-center text-2xl font-bold text-slate-700 bg-transparent placeholder-slate-300 py-2 rounded-lg"
+                    placeholder="Click here to type: Week Name - Store Name (e.g. Week-6 Store: Rajendra Nagar)">
+            </div>
+            <div class="h-[2px] w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent mt-1"></div>
+        </div>
+        <div id="cardGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div class="col-span-full text-center py-32 border-2 border-dashed border-slate-300 rounded-[3rem]">
+                <p class="text-slate-400 font-medium italic">Make sure your photos are named Rank-1.png, Rank-2.png,
+                    etc.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let photoLibrary = {};
+        let csvContent = "";
+
+        function handlePhotoLibrary(event) {
+            const files = event.target.files;
+            const status = document.getElementById('photoStatus');
+            let loadedCount = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photoLibrary[file.name] = e.target.result;
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        status.innerHTML = `<span class="status-dot bg-green-500"></span>Photos: ${files.length} Loaded`;
+                        status.className = "text-xs font-bold text-green-600 uppercase tracking-widest";
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateCSVStatus(event) {
+            const file = event.target.files[0];
+            const status = document.getElementById('csvStatus');
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                csvContent = e.target.result;
+                status.innerHTML = `<span class="status-dot bg-green-500"></span>CSV: Ready`;
+                status.className = "text-xs font-bold text-green-600 uppercase tracking-widest";
+            };
+            reader.readAsText(file);
+        }
+
+        function generateDashboard() {
+            if (!csvContent) {
+                alert("Please select your CSV file first.");
+                return;
+            }
+
+            const container = document.getElementById('cardGrid');
+            const rows = csvContent.split('\n').slice(1);
+            container.innerHTML = '';
+
+            rows.forEach(row => {
+                if (row.trim() === '') return;
+                const columns = row.split(',');
+                if (columns.length < 5) return;
+
+                const rank = columns[0].trim();
+                const name = columns[1].trim();
+                const id = columns[2].trim();
+                const orders = columns[3].trim();
+                const earnings = columns[4].trim();
+                const photoName = `${rank}.png`;
+                const finalImgSrc = photoLibrary[photoName] || photoName;
+
+                const cardHtml = `
+                    <div class="custom-card rounded-[2.5rem] p-6 flex flex-col items-center text-center">
+                        <div class="mb-4">
+                            <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-tighter border border-indigo-100">
+                                ${rank}
+                            </span>
+                        </div>
+                        
+                        <div class="relative mb-6">
+                            <div class="w-28 h-28 rounded-full ring-4 ring-indigo-50 p-1 bg-white">
+                                <img src="${finalImgSrc}" 
+                                     onerror="this.src='https://ui-avatars.com/api/?name=${name}&background=6366f1&color=fff&size=128'" 
+                                     alt="${name}" 
+                                     class="w-full h-full object-cover rounded-full">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-slate-800 mb-1">${name}</h3>
+                        <p class="text-slate-400 text-xs mb-6 font-medium tracking-tight">ID: ${id}</p>
+
+                        <div class="grid grid-cols-2 w-full border-t border-slate-50 pt-5">
+                            <div class="stat-divider">
+                                <p class="text-[9px] uppercase font-bold text-slate-400 mb-1">Orders</p>
+                                <p class="text-lg font-bold text-indigo-600">${orders}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] uppercase font-bold text-slate-400 mb-1">Earnings</p>
+                                <p class="text-lg font-bold text-emerald-500">₹${earnings}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        function downloadSample() {
+            const csvText = "rank,name,id,orders,earnings\nRank-1,Sakir Khan,FE4790012,220,13491\nRank-2,Ajeet Singh,FE6537975,213,12225\nRank-3,Ranjeet Kumar,FE6402124,215,12108\nRank-4,Praveen Kumar,FE6613735,217,12028\nRank-5,Manish Kumar,FE6137830,222,11257";
+            const blob = new Blob([csvText], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rider_data.csv';
+            a.click();
+        }
+    </script>
+</body>
+
+</html>
